@@ -31,7 +31,7 @@ The editor-eligibility review desk also contains a student applicant. A moderato
 4. Sign in as a registered reader to browse, filter, rate, comment on, listen to, and share published articles.
 5. Use the **Prototype guide** to review the feature checklist or restore the original demo data.
 
-Student registration requires the simulated school-email verification code `246810`. Guest and faculty registration do not require this simulated student verification.
+Student and faculty registration require an email address ending in `.edu`. Student registration also requires the simulated school-email verification code `246810`; faculty do not require this simulated student verification. Guests can register with any valid email address.
 
 ## Browser storage and prototype limitations
 

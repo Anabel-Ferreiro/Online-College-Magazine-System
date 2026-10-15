@@ -188,7 +188,7 @@ function authPage(register) {
     ${demoAccounts()}</div>
     <section class="auth-card"><h2>${register ? "Create your account" : "Sign in"}</h2>
     ${register ? `<form id="register-form"><div class="field"><label for="reg-name">Name</label><input id="reg-name" name="name" autocomplete="name" required></div>
-      <div class="field"><label for="reg-email">Email</label><input id="reg-email" name="email" type="email" autocomplete="email" required><div class="field-hint">Students must use their school email address and simulated verification. Guests can register with any email.</div></div>
+      <div class="field"><label for="reg-email">Email</label><input id="reg-email" name="email" type="email" autocomplete="email" required><div class="field-hint">Students and faculty must use an email ending in .edu. Students also complete simulated email verification. Guests can register with any email.</div></div>
       <div class="field"><label for="reg-password">Password</label><input id="reg-password" name="password" type="password" minlength="6" autocomplete="new-password" required></div>
       <div class="form-grid"><div class="field"><label for="reg-major">Major / field</label><input id="reg-major" name="major" required></div><div class="field"><label for="reg-school">College / school</label><input id="reg-school" name="school" list="school-list" required><datalist id="school-list">${schoolOptions()}</datalist></div></div>
       <div class="field"><label for="reg-role">Account type</label><select id="reg-role" name="role"><option value="student">Student</option><option value="faculty">Faculty</option><option value="guest">Guest reader</option></select></div>
@@ -267,6 +267,7 @@ function statusInfo(status) {
     returned: ["Returned for revision", "red"],
     discarded: ["Discarded", "gray"],
     removed: ["Removed", "gray"],
+    replaced: ["Replaced by a newer version", "gray"],
     published: ["Published", ""]
   })[status] || [status, "gray"];
 }
@@ -519,7 +520,23 @@ function requestVerificationCode() {
 function moderate(article, decision, feedback) {
   const user = currentUser();
   if (decision === "approve") {
-  if (article.screening?.duplicate) throw new Error("A flagged duplicate cannot be approved. Deny it with a written reason or return it for revision.");
+    if (article.screening?.duplicate) throw new Error("A flagged duplicate cannot be approved. Deny it with a written reason or return it for revision.");
+    const original = article.changeRequestFor
+      ? data.articles.find((item) => item.id === article.changeRequestFor)
+      : null;
+    if (article.changeRequestFor && (!original || original.status !== "published")) {
+      throw new Error("The original published article is no longer available. This change request cannot be approved.");
+    }
+    if (original) {
+      article.ratings = original.ratings.map((rating) => ({ ...rating }));
+      article.comments = original.comments.map((comment) => ({ ...comment }));
+      original.status = "replaced";
+      original.history.push({
+        actorId: user.id,
+        action: `Replaced by approved newer version "${article.title}".`,
+        date: new Date().toISOString()
+      });
+    }
     article.status = "published";
     article.feedback = "";
     article.history.push({ actorId: user.id, action: "Approved for publication after second review.", date: new Date().toISOString() });
@@ -591,7 +608,7 @@ document.addEventListener("click", async (event) => {
         history: [{ actorId: currentUser().id, action: `Change requested for published article ${source.id}; new version enters full review.`, date: new Date().toISOString() }],
         changeRequestFor: source.id
       } : source;
-      app.innerHTML = `${pageHeading(isChange ? "Request a reviewed change" : "Revise returned submission", isChange ? "A new version, fully reviewed." : "Make the requested changes.", isChange ? "Your published article remains unchanged while the proposed revision goes through editor and moderator review." : `Moderator feedback: ${escapeHtml(source.feedback)}`)}
+      app.innerHTML = `${pageHeading(isChange ? "Request a reviewed change" : "Revise returned submission", isChange ? "A new version, fully reviewed." : "Make the requested changes.", isChange ? "Your published article remains unchanged while the proposed revision goes through editor and moderator review." : `Moderator feedback: ${source.feedback}`)}
         <section class="auth-card"><form id="revision-form" data-id="${escapeHtml(draft.id)}" data-existing="${isChange ? "false" : "true"}" data-parent="${isChange ? escapeHtml(source.id) : ""}"><div class="field"><label for="revision-title">Title</label><input id="revision-title" name="title" value="${escapeHtml(source.title)}" required></div><div class="form-grid"><div class="field"><label for="revision-subject">Subject</label><select id="revision-subject" name="subject">${SUBJECTS.map((subject) => `<option ${source.subject === subject ? "selected" : ""}>${escapeHtml(subject)}</option>`).join("")}</select></div><div class="field"><label for="revision-category">Category</label><select id="revision-category" name="category">${CATEGORIES.map((category) => `<option ${source.category === category ? "selected" : ""}>${escapeHtml(category)}</option>`).join("")}</select></div></div><div class="field"><label for="revision-text">Content</label><textarea id="revision-text" name="text" minlength="60" required>${escapeHtml(source.text)}</textarea>${voiceInputButton()}</div><div class="field"><label for="revision-sources">Source links (one per line)</label><textarea id="revision-sources" name="sources" style="min-height:75px">${escapeHtml((source.sources || []).join("\n"))}</textarea></div><button class="button" type="submit">${isChange ? "Submit new version for review" : "Resubmit revised content"}</button></form></section>`;
     }
     if (action === "edit-published") openEditModal(data.articles.find((item) => item.id === id));
@@ -644,6 +661,9 @@ document.addEventListener("submit", (event) => {
     if (form.id === "login-form") login(values.email, values.password);
     if (form.id === "register-form") {
       const role = values.role;
+      if (["student", "faculty"].includes(role) && !values.email.trim().toLowerCase().endsWith(".edu")) {
+        throw new Error("Students and faculty must register with an email address ending in .edu.");
+      }
       if (role === "student" && values.verificationCode !== "246810") throw new Error("Verify your school email with the simulated code before registering.");
       if (data.users.some((user) => user.email.toLowerCase() === values.email.toLowerCase())) throw new Error("An account with this email already exists.");
       const user = { id: `user-${crypto.randomUUID()}`, name: values.name.trim(), email: values.email.trim(), password: values.password, role, major: values.major.trim(), school: values.school.trim(), verified: role !== "student" || values.verificationCode === "246810", rejections: 0 };
