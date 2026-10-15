@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#173f35">
+  <meta name="description" content="A campus magazine where student ideas are reviewed, published, and shared.">
+  <title>Margin — Online College Magazine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div class="prototype-banner">Prototype: data is simulated and stored only in your browser.</div>
+  <header class="site-header">
+    <a class="wordmark" href="#home" aria-label="Margin home"><span class="brand-mark">m.</span> margin<span class="brand-dot">.</span></a>
+    <nav id="navigation" class="main-nav" aria-label="Main navigation"></nav>
+    <div id="account-area" class="account-area"></div>
+  </header>
+  <div id="display-tools" class="display-tools" hidden>
+    <label for="font-size">Text size</label><input id="font-size" type="range" min="90" max="125" value="100" aria-label="Adjust text size">
+    <button id="contrast-toggle" class="text-button" type="button" aria-pressed="false">High contrast</button>
+  </div>
+  <main id="app" tabindex="-1"></main>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <footer class="site-footer"><span>Margin · A more accessible campus magazine.</span><span>Ideas grow when they’re shared.</span></footer>
+</body>
+</html>
